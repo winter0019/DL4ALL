@@ -2,10 +2,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { WeeklyReport } from "../types.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
+/**
+ * Generates executive insights using Gemini 3 Pro reasoning model.
+ */
 export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string> => {
   if (reports.length === 0) return "No data available for analysis.";
+
+  // Create instance right before making the call as per requirements
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const reportSummary = reports.map(r => 
     `Team ${r.teamCode} (${r.name}/${r.partnerName}) in ${r.lga}: WK1=${r.metrics.weeklyAttendance.wk1}, WK2=${r.metrics.weeklyAttendance.wk2}, WK3=${r.metrics.weeklyAttendance.wk3}, WK4=${r.metrics.weeklyAttendance.wk4}, Total=${r.metrics.activeUsers}`
@@ -28,16 +32,28 @@ export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string>
         DATASET:
         ${reportSummary}
       `,
+      config: {
+        // High thinking budget for deep reasoning
+        thinkingConfig: { thinkingBudget: 32768 }
+      }
     });
 
     return response.text || "Unable to generate insights.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Error:", error);
-    return "Failed to connect to intelligence engine.";
+    if (error.message?.includes("Requested entity was not found")) {
+        return "ERROR: API Key configuration invalid. Please re-authenticate the AI engine via the activation screen.";
+    }
+    return "Failed to connect to intelligence engine. Please check your internet connection.";
   }
 };
 
+/**
+ * Extracts data from a document image or PDF using Gemini 3 Pro Image model.
+ * Complies with SDK rules for nano banana series models.
+ */
 export const extractDataFromDocument = async (base64Data: string, mimeType: string): Promise<any> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-image-preview",
@@ -59,31 +75,20 @@ export const extractDataFromDocument = async (base64Data: string, mimeType: stri
               - The 'TOTAL' column is a numeric sum.
               - 'KT LGA' in headers refers to 'Katsina' LGA.
               
-              Return a JSON object: lga, teamCode, teamLeaderName, partnerName, wk1, wk2, wk3, wk4, total.
+              Return a raw JSON object only, with no markdown formatting: 
+              { "lga": string, "teamCode": string, "teamLeaderName": string, "partnerName": string, "wk1": string, "wk2": string, "wk3": string, "wk4": string, "total": number }
             `,
           },
         ]
       },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            lga: { type: Type.STRING },
-            teamCode: { type: Type.STRING },
-            teamLeaderName: { type: Type.STRING },
-            partnerName: { type: Type.STRING },
-            wk1: { type: Type.STRING, description: "Can be number string, 'ABS', or 'NDB'" },
-            wk2: { type: Type.STRING, description: "Can be number string, 'ABS', or 'NDB'" },
-            wk3: { type: Type.STRING, description: "Can be number string, 'ABS', or 'NDB'" },
-            wk4: { type: Type.STRING, description: "Can be number string, 'ABS', or 'NDB'" },
-            total: { type: Type.NUMBER }
-          }
-        }
-      },
+      // Note: responseMimeType and responseSchema are NOT supported for nano banana series models
+      config: {}
     });
 
-    return JSON.parse(response.text || "{}");
+    const text = response.text || "{}";
+    // Sanitize response text to extract only the JSON block if present
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
   } catch (error) {
     console.error("Extraction Error:", error);
     return null;

@@ -1,5 +1,7 @@
 {
   "name": "DL4ALL - Katsina State Performance Portal",
   "description": "A high-performance management dashboard for the Digital Literacy for All (DL4ALL) initiative in Katsina State, featuring real-time reporting, analytics, and AI-driven insights.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }
