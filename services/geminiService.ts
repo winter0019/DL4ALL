@@ -3,12 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { WeeklyReport } from "../types.ts";
 
 /**
- * Generates executive insights using Gemini 3 Pro reasoning model.
+ * Generates executive insights using Gemini 3 Flash reasoning model.
+ * Optimized for speed and state-wide data synthesis.
  */
 export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string> => {
   if (reports.length === 0) return "No data available for analysis.";
 
-  // Create instance right before making the call as per requirements
+  // Use the built-in environment API key directly
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const reportSummary = reports.map(r => 
@@ -17,7 +18,7 @@ export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string>
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
+      model: "gemini-3-flash-preview",
       contents: `
         Act as a World-Class Performance Analyst for the DL4ALL initiative in Katsina State.
         Using the provided ground-level data, generate a high-stakes professional report following this structure:
@@ -33,30 +34,27 @@ export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string>
         ${reportSummary}
       `,
       config: {
-        // High thinking budget for deep reasoning
-        thinkingConfig: { thinkingBudget: 32768 }
+        // High reasoning budget for quality results on Flash-3
+        thinkingConfig: { thinkingBudget: 24576 }
       }
     });
 
     return response.text || "Unable to generate insights.";
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    if (error.message?.includes("Requested entity was not found")) {
-        return "ERROR: API Key configuration invalid. Please re-authenticate the AI engine via the activation screen.";
-    }
-    return "Failed to connect to intelligence engine. Please check your internet connection.";
+    return "Intelligence engine temporarily unavailable. Please verify connectivity.";
   }
 };
 
 /**
- * Extracts data from a document image or PDF using Gemini 3 Pro Image model.
- * Complies with SDK rules for nano banana series models.
+ * Extracts data from a document image or PDF using Gemini 2.5 Flash model.
+ * Optimized for vision-based data extraction.
  */
 export const extractDataFromDocument = async (base64Data: string, mimeType: string): Promise<any> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro-image-preview",
+      model: "gemini-2.5-flash-image",
       contents: {
         parts: [
           {
@@ -81,12 +79,10 @@ export const extractDataFromDocument = async (base64Data: string, mimeType: stri
           },
         ]
       },
-      // Note: responseMimeType and responseSchema are NOT supported for nano banana series models
       config: {}
     });
 
     const text = response.text || "{}";
-    // Sanitize response text to extract only the JSON block if present
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     return JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
   } catch (error) {

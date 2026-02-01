@@ -6,32 +6,13 @@ import { Login } from './components/Login.tsx';
 import { firestoreService } from './services/firestoreService.ts';
 import { WeeklyReport, CloudStatus, User } from './types.ts';
 
-// Declare window extension for TypeScript - removed local conflicting declaration as it's provided globally as AIStudio
-
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<'REPORT' | 'ADMIN'>('REPORT');
   const [reports, setReports] = useState<WeeklyReport[]>([]);
   const [cloudStatus, setCloudStatus] = useState<CloudStatus | 'LOCAL-SYNC'>('CONNECTING');
   const [lastError, setLastError] = useState<any>(null);
-  const [isApiKeySelected, setIsApiKeySelected] = useState<boolean>(false);
-  const [checkingKey, setCheckingKey] = useState<boolean>(true);
 
-  // Use useEffect to check for existing API key selection on mount
-  useEffect(() => {
-    const checkKey = async () => {
-      // @ts-ignore - window.aistudio is globally defined in the environment as AIStudio
-      if (window.aistudio) {
-        // @ts-ignore
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setIsApiKeySelected(hasKey);
-      }
-      setCheckingKey(false);
-    };
-    checkKey();
-  }, []);
-
-  // Subscribe to report updates from the persistence service
   useEffect(() => {
     const unsubscribe = firestoreService.subscribeToReports(
       (updatedReports) => {
@@ -49,7 +30,6 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Automatically switch views based on user role
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       setView('ADMIN');
@@ -63,55 +43,8 @@ const App: React.FC = () => {
     setView('REPORT');
   };
 
-  const handleActivateAI = async () => {
-    // @ts-ignore
-    if (window.aistudio) {
-      // @ts-ignore
-      await window.aistudio.openSelectKey();
-      // Assume success after opening dialog per instructions to mitigate race conditions
-      setIsApiKeySelected(true);
-    }
-  };
-
   if (!user) {
     return <Login onLogin={setUser} />;
-  }
-
-  // Mandatory AI Key Selection for Gemini 3 Pro series models
-  if (!isApiKeySelected && !checkingKey) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-        <div className="max-w-xl w-full bg-white rounded-[3rem] p-12 shadow-2xl border border-slate-100 text-center">
-          <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-indigo-100 mx-auto mb-8">
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Activate High-Performance AI</h2>
-          <p className="text-slate-500 text-sm leading-relaxed mb-8">
-            To enable deep-scan analytics and executive state briefings, this portal requires a secure connection to Google's Pro Intelligence Engine.
-          </p>
-          
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 mb-8 text-left">
-            <h4 className="text-amber-800 text-xs font-black uppercase tracking-widest mb-2">Requirements</h4>
-            <p className="text-amber-700 text-xs leading-relaxed">
-              Users must select an API Key from a paid Google Cloud Project. Visit the <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold hover:text-amber-900">Billing Documentation</a> to ensure your project is properly configured.
-            </p>
-          </div>
-
-          <button 
-            onClick={handleActivateAI}
-            className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-sm tracking-tight shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
-          >
-            SELECT PROJECT API KEY
-          </button>
-          
-          <p className="mt-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Katsina State Digital Literacy Initiative
-          </p>
-        </div>
-      </div>
-    );
   }
 
   const statusColors = {
