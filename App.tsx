@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { ReportForm } from './components/ReportForm';
-import { AdminDashboard } from './components/AdminDashboard';
-import { Login } from './components/Login';
-import { firestoreService } from './services/firestoreService';
-import { storageService } from './services/storageService';
-import { WeeklyReport, CloudStatus, User } from './types';
+import { ReportForm } from './components/ReportForm.tsx';
+import { AdminDashboard } from './components/AdminDashboard.tsx';
+import { Login } from './components/Login.tsx';
+import { firestoreService } from './services/firestoreService.ts';
+import { storageService } from './services/storageService.ts';
+import { WeeklyReport, CloudStatus, User } from './types.ts';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -18,7 +18,7 @@ const App: React.FC = () => {
     const unsubscribe = firestoreService.subscribeToReports(
       (updatedReports) => {
         setReports(updatedReports);
-        setCloudStatus('LOCAL-SYNC'); // Update to show local sync is active
+        setCloudStatus('LOCAL-SYNC');
         setLastError(null);
       },
       (error: any) => {
@@ -31,7 +31,6 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Sync view when user logs in
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       setView('ADMIN');

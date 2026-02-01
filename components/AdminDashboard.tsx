@@ -1,8 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
-import { WeeklyReport, CloudStatus, KATSINA_LGAS, LGAName } from '../types';
-import { SmartInsights } from './SmartInsights';
-import { ExecutiveReport } from './ExecutiveReport';
+import { WeeklyReport, CloudStatus, KATSINA_LGAS, LGAName } from '../types.ts';
+import { SmartInsights } from './SmartInsights.tsx';
+import { ExecutiveReport } from './ExecutiveReport.tsx';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   Cell
@@ -27,7 +27,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showExecutiveReport, setShowExecutiveReport] = useState(false);
 
-  // Calculate stats per LGA for the selection cards
   const lgaSummaries = useMemo(() => {
     return KATSINA_LGAS.map(lga => {
       const lgaReports = reports.filter(r => r.lga === lga);
@@ -110,7 +109,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
     <div className="space-y-8 pb-10">
       {showExecutiveReport && <ExecutiveReport onClose={() => setShowExecutiveReport(false)} />}
       
-      {/* Search and High-Level Filter Area */}
       <div className="bg-white rounded-[2rem] p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">
           <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
@@ -136,7 +134,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
         </div>
       </div>
 
-      {/* LGA Selector Bar */}
       <div className="flex items-center gap-4 overflow-x-auto pb-4 custom-scrollbar">
         <button 
           onClick={() => setFilterLga('ALL')}
@@ -174,7 +171,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
-          {/* Main Stats Summary for context */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden relative group">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
@@ -224,7 +220,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
                   {processedReports.map((r) => {
                     const isNew = Date.now() - r.timestamp < 60000;
                     return (
-                      <tr key={r.id} className={`group transition-all duration-300 ${isNew ? 'bg-indigo-50/20' : 'hover:bg-slate-50/50'}`}>
+                      <tr key={r.id} className={`group transition-all duration-300 relative ${
+                        isNew 
+                          ? 'bg-emerald-50/40 border-l-4 border-l-emerald-500' 
+                          : 'hover:bg-slate-50/50 border-l-4 border-l-transparent'
+                      }`}>
                         <td className="px-6 py-5 align-middle">
                           <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs shadow-sm relative group-hover:scale-110 transition-transform" 
                                style={{ backgroundColor: r.color || '#6366f1', color: isDarkColor(r.color || '#6366f1') ? 'white' : 'black' }}>
@@ -234,7 +234,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col">
-                            {filterLga === 'ALL' && <span className="text-[9px] font-black text-indigo-600 uppercase mb-0.5">{r.lga}</span>}
+                            <div className="flex items-center gap-2 mb-1">
+                              {filterLga === 'ALL' && <span className="text-[9px] font-black text-indigo-600 uppercase">{r.lga}</span>}
+                              {isNew && (
+                                <span className="px-1.5 py-0.5 bg-emerald-600 text-[8px] font-black text-white rounded-md tracking-widest animate-subtle-pulse">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
                             <span className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none mb-1">{r.name}</span>
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Partner: {r.partnerName}</span>
                           </div>
@@ -250,16 +257,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
                       </tr>
                     );
                   })}
-                  {processedReports.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-32 text-center text-slate-400 italic">
-                        <div className="flex flex-col items-center">
-                          <svg className="w-12 h-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                          No matching records found in this region.
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
