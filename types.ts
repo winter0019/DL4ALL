@@ -2,6 +2,13 @@
 export type CloudStatus = 'CONNECTED' | 'DISCONNECTED' | 'ERROR' | 'CONNECTING';
 export type UserRole = 'ADMIN' | 'LEADER';
 
+export type ReportingMonth = 
+  | 'January' | 'February' | 'March' | 'April' 
+  | 'May' | 'June' | 'July' | 'August' 
+  | 'September' | 'October' | 'November' | 'December';
+
+export type ReportingWeek = 'Week 1' | 'Week 2' | 'Week 3' | 'Week 4';
+
 export interface User {
   username: string;
   name: string;
@@ -22,6 +29,9 @@ export interface WeeklyReport {
   teamCode: string;
   name: string;
   partnerName: string;
+  month: ReportingMonth;
+  selectedWeek: ReportingWeek;
+  year: number;
   weekEnding: string;
   color: string;
   metrics: {
@@ -58,3 +68,12 @@ export const KATSINA_LGAS: LGAName[] = [
   'Mashi',
   'Daura'
 ];
+
+export const MONTHS: ReportingMonth[] = [
+  'January', 'February', 'March', 'April', 'May', 'June', 
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+export const WEEKS: ReportingWeek[] = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+
+export const YEARS = [2025, 2026, 2027];

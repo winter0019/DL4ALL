@@ -8,8 +8,11 @@ const MOCK_DATA: WeeklyReport[] = [
     teamCode: '02162',
     name: 'ZUWAIRA KALLA',
     partnerName: 'DOGARA MUSA',
+    month: 'January',
+    selectedWeek: 'Week 4',
+    year: 2026,
     weekEnding: '2026-01-31',
-    color: '#F48232', // Orange from PDF
+    color: '#F48232',
     metrics: {
       totalEnrolled: 450,
       activeUsers: 52,
@@ -29,8 +32,11 @@ const MOCK_DATA: WeeklyReport[] = [
     teamCode: '02496',
     name: 'ALICE AMEH',
     partnerName: 'NIMMYEL FRIDAY',
+    month: 'January',
+    selectedWeek: 'Week 4',
+    year: 2026,
     weekEnding: '2026-01-31',
-    color: '#0D2137', // Navy from PDF
+    color: '#0D2137',
     metrics: {
       totalEnrolled: 400,
       activeUsers: 50,
@@ -45,129 +51,27 @@ const MOCK_DATA: WeeklyReport[] = [
     timestamp: Date.now()
   },
   {
-    id: '3',
-    lga: 'Katsina',
-    teamCode: '02492',
-    name: 'JAMES OLATEJU',
-    partnerName: 'PATIENCE GABRIEL',
+    id: '7',
+    lga: 'Batagarawa',
+    teamCode: '02636',
+    name: 'DANLADI BASHIR',
+    partnerName: 'GODWIN SOLOMON',
+    month: 'January',
+    selectedWeek: 'Week 4',
+    year: 2026,
     weekEnding: '2026-01-31',
-    color: '#084B6F', // Blue-Teal from PDF
-    metrics: {
-      totalEnrolled: 350,
-      activeUsers: 20,
-      certificatesIssued: 5,
-      weeklyAttendance: { wk1: 0, wk2: 5, wk3: 15, wk4: 0 },
-      communityOutreach: 2,
-      femaleCount: 150,
-      maleCount: 200
-    },
-    infrastructure: { functionalDevices: 30, internetStatus: 'Poor', powerAvailability: 60 },
-    challenges: 'Network issues in early weeks.',
-    timestamp: Date.now()
-  },
-  {
-    id: '4',
-    lga: 'Katsina',
-    teamCode: '02495',
-    name: 'SENJONG DAWULENG',
-    partnerName: 'OGAR IYOWO',
-    weekEnding: '2026-01-31',
-    color: '#006B2B', // Dark Green from PDF
+    color: '#6366f1',
     metrics: {
       totalEnrolled: 300,
-      activeUsers: 10,
-      certificatesIssued: 2,
-      weeklyAttendance: { wk1: 0, wk2: 10, wk3: 0, wk4: 0 },
-      communityOutreach: 1,
-      femaleCount: 100,
-      maleCount: 200
-    },
-    infrastructure: { functionalDevices: 25, internetStatus: 'Fair', powerAvailability: 70 },
-    challenges: 'Low turnout.',
-    timestamp: Date.now()
-  },
-  {
-    id: '5',
-    lga: 'Katsina',
-    teamCode: '02166',
-    name: 'FATIMA YUSUF',
-    partnerName: 'VICTOR BALA',
-    weekEnding: '2026-01-31',
-    color: '#9B26AF', // Purple from PDF
-    metrics: {
-      totalEnrolled: 420,
-      activeUsers: 51,
-      certificatesIssued: 15,
-      weeklyAttendance: { wk1: 0, wk2: 31, wk3: 20, wk4: 0 },
-      communityOutreach: 4,
-      femaleCount: 200,
-      maleCount: 220
-    },
-    infrastructure: { functionalDevices: 48, internetStatus: 'Excellent', powerAvailability: 90 },
-    challenges: 'Strong Week 2 performance.',
-    timestamp: Date.now()
-  },
-  {
-    id: '6',
-    lga: 'Katsina',
-    teamCode: '02697',
-    name: 'PEACE JOSEPH',
-    partnerName: 'JAMES AYEREWAJU',
-    weekEnding: '2026-01-31',
-    color: '#60B236', // Light Green from PDF
-    metrics: {
-      totalEnrolled: 500,
-      activeUsers: 60,
-      certificatesIssued: 20,
-      weeklyAttendance: { wk1: 0, wk2: 41, wk3: 19, wk4: 0 },
-      communityOutreach: 6,
-      femaleCount: 250,
-      maleCount: 250
-    },
-    infrastructure: { functionalDevices: 55, internetStatus: 'Excellent', powerAvailability: 100 },
-    challenges: 'Peak performance reached in Jan.',
-    timestamp: Date.now()
-  },
-  {
-    id: '9',
-    lga: 'Katsina',
-    teamCode: '02493',
-    name: 'DAMAK LISAN',
-    partnerName: 'ADEH EMMANUEL',
-    weekEnding: '2026-01-31',
-    color: '#FE0000', // Red from PDF
-    metrics: {
-      totalEnrolled: 480,
-      activeUsers: 60,
-      certificatesIssued: 18,
-      weeklyAttendance: { wk1: 20, wk2: 30, wk3: 10, wk4: 0 },
-      communityOutreach: 5,
-      femaleCount: 240,
-      maleCount: 240
-    },
-    infrastructure: { functionalDevices: 50, internetStatus: 'Excellent', powerAvailability: 95 },
-    challenges: 'Consistent flow across weeks.',
-    timestamp: Date.now()
-  },
-  {
-    id: '10',
-    lga: 'Katsina',
-    teamCode: '02473',
-    name: 'SUNDAY MICHEST',
-    partnerName: 'JANE OMALE',
-    weekEnding: '2026-01-31',
-    color: '#FFFF00', // Yellow from PDF
-    metrics: {
-      totalEnrolled: 300,
-      activeUsers: 30,
-      certificatesIssued: 5,
-      weeklyAttendance: { wk1: 0, wk2: 30, wk3: 0, wk4: 0 },
+      activeUsers: 50,
+      certificatesIssued: 10,
+      weeklyAttendance: { wk1: 0, wk2: 25, wk3: 17, wk4: 8 },
       communityOutreach: 2,
       femaleCount: 150,
       maleCount: 150
     },
-    infrastructure: { functionalDevices: 20, internetStatus: 'Fair', powerAvailability: 80 },
-    challenges: 'One-week peak activity.',
+    infrastructure: { functionalDevices: 30, internetStatus: 'Fair', powerAvailability: 80 },
+    challenges: 'Steady attendance.',
     timestamp: Date.now()
   }
 ];

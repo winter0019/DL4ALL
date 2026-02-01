@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { KATSINA_LGAS, WeeklyReport, LGAName, User } from '../types';
+import { KATSINA_LGAS, WeeklyReport, LGAName, User, MONTHS, WEEKS, YEARS, ReportingMonth, ReportingWeek } from '../types';
 import { firestoreService } from '../services/firestoreService';
 import { extractDataFromDocument } from '../services/geminiService';
 
@@ -35,14 +35,14 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
   const [formData, setFormData] = useState({
     lga: (user.lga || '') as LGAName | '',
     teamCode: '',
-    period: 'Jan-26',
-    week: 'Week 1',
+    year: 2026,
+    month: 'January' as ReportingMonth,
+    week: 'Week 1' as ReportingWeek,
     attendance: 'PRESENT' as 'PRESENT' | 'ABSENT' | 'NO DATA',
     meritScore: 0,
     challenges: ''
   });
 
-  // Sync LGA if user changes or initially loads
   useEffect(() => {
     if (user.lga) {
       setFormData(prev => ({ ...prev, lga: user.lga as LGAName }));
@@ -61,7 +61,6 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
         const extracted = await extractDataFromDocument(base64, file.type);
         
         if (extracted) {
-          // If admin, they can extract any LGA. If leader, check it matches.
           const extractedLGA = extracted.lga as LGAName;
           const isAuthorized = user.role === 'ADMIN' || extractedLGA === user.lga;
 
@@ -98,7 +97,10 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
         teamCode: formData.teamCode.split(' ')[1] || '00000',
         name: user.name,
         partnerName: 'DL4ALL Operations',
-        weekEnding: '2026-01-31',
+        month: formData.month,
+        selectedWeek: formData.week,
+        year: formData.year,
+        weekEnding: `${formData.year}-12-31`,
         color: '#6366F1',
         metrics: {
           totalEnrolled: 0,
@@ -135,12 +137,8 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
   const inputLabelClass = "text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 block";
   const selectClass = "w-full bg-[#F1F5F9]/60 border-none rounded-2xl px-6 py-4 text-sm font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none appearance-none cursor-pointer transition-all";
 
-  const isLgaDisabled = user.role !== 'ADMIN';
-
   return (
     <div className="max-w-4xl mx-auto space-y-10">
-      
-      {/* AI Smart Update Bar */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${scanning ? 'bg-indigo-600 animate-pulse' : 'bg-slate-100'}`}>
@@ -174,17 +172,16 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-12">
-          {/* Row 1: LGA and Team Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div>
               <label className={inputLabelClass}>Local Gov Area</label>
               <select 
-                disabled={isLgaDisabled}
-                className={`${selectClass} ${isLgaDisabled ? 'bg-slate-50 cursor-not-allowed opacity-80' : ''}`}
+                disabled={user.role !== 'ADMIN'}
+                className={`${selectClass} ${user.role !== 'ADMIN' ? 'bg-slate-50 cursor-not-allowed opacity-80' : ''}`}
                 value={formData.lga}
                 onChange={(e) => setFormData({ ...formData, lga: e.target.value as LGAName, teamCode: '' })}
               >
-                {!isLgaDisabled && <option value="">Select LGA</option>}
+                {user.role === 'ADMIN' && <option value="">Select LGA</option>}
                 {KATSINA_LGAS.map(lga => <option key={lga} value={lga}>{lga}</option>)}
               </select>
             </div>
@@ -202,27 +199,41 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className={inputLabelClass}>Reporting Period</label>
-              <select className={selectClass} value={formData.period} onChange={e => setFormData({...formData, period: e.target.value})}>
-                <option>Jan-26</option>
-                <option>Feb-26</option>
+              <label className={inputLabelClass}>Reporting Year</label>
+              <select 
+                className={selectClass} 
+                value={formData.year} 
+                onChange={e => setFormData({...formData, year: parseInt(e.target.value)})}
+              >
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
             <div>
-              <label className={inputLabelClass}>Week</label>
-              <select className={selectClass} value={formData.week} onChange={e => setFormData({...formData, week: e.target.value})}>
-                <option>Week 1</option>
-                <option>Week 2</option>
-                <option>Week 3</option>
-                <option>Week 4</option>
+              <label className={inputLabelClass}>Reporting Month</label>
+              <select 
+                className={selectClass} 
+                value={formData.month} 
+                onChange={e => setFormData({...formData, month: e.target.value as ReportingMonth})}
+              >
+                {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={inputLabelClass}>Week of Update</label>
+              <select 
+                className={selectClass} 
+                value={formData.week} 
+                onChange={e => setFormData({...formData, week: e.target.value as ReportingWeek})}
+              >
+                {WEEKS.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
           </div>
 
           <div className="text-center">
-            <label className={`${inputLabelClass} text-center`}>Center Attendance</label>
+            <label className={`${inputLabelClass} text-center`}>Center Attendance Status</label>
             <div className="inline-flex bg-[#F1F5F9]/60 p-1.5 rounded-2xl border border-slate-100">
               {['PRESENT', 'ABSENT', 'NO DATA'].map((status) => (
                 <button
@@ -252,21 +263,20 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
               />
               <div className="h-2 w-full bg-indigo-600/5 rounded-full mt-2 group-focus-within:bg-indigo-600/10 transition-colors"></div>
             </div>
-            <p className="text-[10px] font-bold text-slate-400 mt-4 uppercase tracking-[0.2em]">Validated Ground Metrics Only</p>
           </div>
 
           <div className="flex flex-col items-center gap-6">
             {success && (
               <div className="flex items-center gap-2 text-emerald-600 font-black text-sm animate-bounce">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-                SYNC SUCCESSFUL
+                RECORD SYNCED
               </div>
             )}
             <button
-              disabled={submitting || !formData.lga}
+              disabled={submitting || !formData.lga || !formData.teamCode}
               type="submit"
               className={`w-full md:w-auto px-16 py-5 rounded-2xl font-black text-sm tracking-tight shadow-2xl transition-all ${
-                submitting || !formData.lga
+                submitting || !formData.lga || !formData.teamCode
                   ? 'bg-slate-300 text-white cursor-not-allowed opacity-50'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200'
               }`}
@@ -275,15 +285,6 @@ export const ReportForm: React.FC<ReportFormProps> = ({ reports, user }) => {
             </button>
           </div>
         </form>
-      </div>
-      
-      <div className="flex justify-center gap-10 text-slate-400">
-         <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest">End-to-End Encrypted</span>
-         </div>
       </div>
     </div>
   );
