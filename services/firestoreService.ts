@@ -28,17 +28,24 @@ const INITIAL_MOCK_DATA: WeeklyReport[] = [
     infrastructure: { functionalDevices: 30, internetStatus: 'Fair', powerAvailability: 80 }, challenges: 'Steady attendance.', timestamp: Date.now() - 1200000 },
 ];
 
-const STORAGE_KEY = 'dl4all_local_ledger';
+const STORAGE_KEY = 'dl4all_local_ledger_v2';
 
 const getStoredData = (): WeeklyReport[] => {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
+  
+  // Logic to handle empty or missing storage - ensures records show up after deployment
+  if (!stored || JSON.parse(stored).length === 0) {
+    console.log("Local ledger empty. Initializing baseline records...");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_MOCK_DATA));
     return INITIAL_MOCK_DATA;
   }
+  
   try {
-    return JSON.parse(stored);
+    const data = JSON.parse(stored);
+    return data;
   } catch (e) {
+    console.error("Ledger corruption detected. Resetting to baseline.");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_MOCK_DATA));
     return INITIAL_MOCK_DATA;
   }
 };
@@ -48,7 +55,9 @@ let listeners: ((data: WeeklyReport[]) => void)[] = [];
 export const firestoreService = {
   subscribeToReports: (onUpdate: (reports: WeeklyReport[]) => void, onError: (error: any) => void) => {
     const data = getStoredData();
-    setTimeout(() => onUpdate(data), 100);
+    // Immediate notification
+    onUpdate(data);
+    // Add to listeners for future updates
     listeners.push(onUpdate);
     return () => { listeners = listeners.filter(l => l !== onUpdate); };
   },

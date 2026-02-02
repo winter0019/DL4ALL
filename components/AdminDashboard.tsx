@@ -39,7 +39,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
     const summaries = KATSINA_LGAS.map(lga => {
       const lgaReports = reports.filter(r => 
         r.lga === lga && 
-        r.year === filterYear && 
+        Number(r.year) === Number(filterYear) && 
         r.month === filterMonth &&
         (filterWeek === 'ALL' || r.selectedWeek === filterWeek)
       );
@@ -51,7 +51,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
         avgEngagement: lgaReports.length > 0 ? (totalActive / lgaReports.length).toFixed(1) : 0
       };
     });
-    // Rank by performance volume
     return summaries.sort((a, b) => b.totalActive - a.totalActive);
   }, [reports, filterYear, filterMonth, filterWeek]);
 
@@ -60,14 +59,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
   const processedReports = useMemo(() => {
     let items = reports.filter(r => {
       const matchesLga = filterLga === 'ALL' || r.lga === filterLga;
-      const matchesYear = r.year === filterYear;
+      const matchesYear = Number(r.year) === Number(filterYear);
       const matchesMonth = r.month === filterMonth;
       const matchesWeek = filterWeek === 'ALL' || r.selectedWeek === filterWeek;
       
       const term = searchTerm.toLowerCase();
       const matchesSearch = r.name.toLowerCase().includes(term) || 
                            r.partnerName.toLowerCase().includes(term) ||
-                           r.teamCode.toLowerCase().includes(term);
+                           r.teamCode.toString().toLowerCase().includes(term);
       return matchesLga && matchesYear && matchesMonth && matchesWeek && matchesSearch;
     });
 
@@ -105,7 +104,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
     ];
     processedReports.forEach(r => {
       const b = r.metrics.weeklyAttendance;
-      const parseVal = (v: any) => typeof v === 'number' ? v : 0;
+      const parseVal = (v: any) => (typeof v === 'number' ? v : 0);
       trend[0].value += parseVal(b.wk1);
       trend[1].value += parseVal(b.wk2);
       trend[2].value += parseVal(b.wk3);
@@ -246,16 +245,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
         </div>
       </div>
 
-      {/* 3. LGA SCORECARDS - COMPACT RE-DESIGN */}
+      {/* 3. LGA SCORECARDS - COMPACT & RESILIENT */}
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
           <div>
             <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Regional Performance Ranking</h3>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">Ranked by Operational Aggregate</p>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">Aggregated active user density</p>
           </div>
           <div className="flex items-center gap-3">
              <span className="text-[9px] font-black text-slate-400 uppercase">Top Cluster:</span>
-             <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-100">{topLGA.name}</span>
+             <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-100">{topLGA?.name || '---'}</span>
           </div>
         </div>
         
@@ -264,28 +263,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
             <button 
               key={lga.name}
               onClick={() => setFilterLga(lga.name as LGAName)}
-              className={`group p-6 rounded-[1.5rem] border-2 transition-all text-left relative overflow-hidden flex flex-col justify-between h-auto md:h-[210px] ${
+              className={`group p-5 rounded-[1.25rem] border-2 transition-all text-left relative overflow-hidden flex flex-col justify-between h-auto md:h-[180px] ${
                 filterLga === lga.name 
                   ? 'bg-white border-indigo-600 shadow-xl scale-[1.01] z-10' 
                   : 'bg-white border-white text-slate-600 hover:border-slate-200 shadow-sm'
               }`}
             >
               <div className="relative z-10 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px] ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lga.name}</p>
-                      <div className="flex items-center gap-1">
-                        <span className={`w-1 h-1 rounded-full ${lga.totalActive > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Active State</span>
-                      </div>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 leading-none">{lga.name}</p>
                     </div>
                   </div>
                   {idx === 0 && (
-                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full uppercase tracking-tighter border border-emerald-100">Leader</span>
+                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full uppercase border border-emerald-100">Leader</span>
                   )}
                 </div>
 
@@ -296,35 +291,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-50">
+                <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-slate-50">
                   <div className="space-y-0.5">
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs</p>
-                    <p className="text-sm font-black text-slate-900 leading-none">{lga.totalReports}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Reports</p>
+                    <p className="text-xs font-black text-slate-900 leading-none">{lga.totalReports}</p>
                   </div>
                   <div className="space-y-0.5 text-right">
                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Avg Eng.</p>
-                    <p className="text-sm font-black text-emerald-600 leading-none">{lga.avgEngagement}</p>
+                    <p className="text-xs font-black text-emerald-600 leading-none">{lga.avgEngagement}</p>
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-32 h-32 bg-slate-50/50 rounded-full blur-2xl -mr-16 -mb-16 group-hover:bg-indigo-50/30 transition-colors duration-500"></div>
+              <div className="absolute bottom-0 right-0 w-24 h-24 bg-slate-50/50 rounded-full blur-2xl -mr-12 -mb-12 group-hover:bg-indigo-50/30 transition-colors duration-500"></div>
             </button>
           ))}
         </div>
       </div>
 
       {/* 4. MAIN LEDGER SECTION */}
-      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-50">
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-50">
           <div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Consolidated Ledger</h3>
-            <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">
-              {filterLga === 'ALL' ? 'State-Wide Directives' : `${filterLga} Region Audit`}
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Consolidated Ledger</h3>
+            <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-widest">
+              {filterLga === 'ALL' ? 'State-Wide Deployment Audit' : `${filterLga} Region Audit`}
             </p>
           </div>
           <div className="flex items-center gap-4">
              <div className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-slate-50 rounded-2xl border border-slate-100">
-               <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+               <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{processedReports.length} Authenticated Entries</span>
              </div>
              <button onClick={() => requestSort('total')} className="p-4 bg-[#0F172A] rounded-2xl hover:bg-indigo-600 transition-all text-white shadow-xl shadow-slate-200">
@@ -347,31 +342,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {processedReports.map((r) => (
+              {processedReports.length > 0 ? processedReports.map((r) => (
                 <tr key={r.id} className="group hover:bg-slate-50/20 transition-colors">
                   <td className="px-10 py-8">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xs shadow-sm" 
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-[10px] shadow-sm" 
                          style={{ backgroundColor: r.color || '#6366f1', color: isDarkColor(r.color || '#6366f1') ? 'white' : 'black' }}>
                       {r.teamCode}
                     </div>
                   </td>
                   <td className="px-10 py-8">
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{r.lga}</span>
-                      <span className="text-base font-black text-slate-900 uppercase tracking-tight leading-none">{r.name}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Partner: {r.partnerName}</span>
+                      <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">{r.lga}</span>
+                      <span className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none">{r.name}</span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Partner: {r.partnerName}</span>
                     </div>
                   </td>
                   {[r.metrics.weeklyAttendance.wk1, r.metrics.weeklyAttendance.wk2, r.metrics.weeklyAttendance.wk3, r.metrics.weeklyAttendance.wk4].map((wk, idx) => (
                     <td key={idx} className="px-6 py-8 text-center text-sm font-bold">
-                      {wk === 0 || wk === 'ABS' ? <span className="text-rose-400 opacity-60">ABS</span> : wk === 'NDB' ? <span className="opacity-20">NDB</span> : <span className="text-slate-900 font-black">{wk}</span>}
+                      {wk === 0 || wk === 'ABS' ? <span className="text-rose-400 opacity-60 text-xs">ABS</span> : wk === 'NDB' ? <span className="opacity-20 text-xs">NDB</span> : <span className="text-slate-900 font-black">{wk}</span>}
                     </td>
                   ))}
                   <td className="px-10 py-8 text-center bg-indigo-50/5">
-                    <span className="text-3xl font-black text-indigo-600 tracking-tighter">{r.metrics.activeUsers}</span>
+                    <span className="text-2xl font-black text-indigo-600 tracking-tighter">{r.metrics.activeUsers}</span>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={7} className="px-10 py-20 text-center">
+                    <p className="text-xs font-black text-slate-300 uppercase tracking-[0.3em]">No records matching current filters</p>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -381,23 +382,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
       <div className="space-y-12">
         <SmartInsights reports={processedReports} />
         
-        <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Operational Cycle Velocity</h3>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">Operational Cycle Velocity</h3>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">Aggregated Engagement Trend Analysis</p>
             </div>
           </div>
-          <div className="h-[400px]">
+          <div className="h-[350px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={attendanceTrend} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} dy={20}/>
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}}/>
-                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '20px'}}/>
-                <Bar dataKey="value" fill="#6366f1" radius={[14, 14, 0, 0]} barSize={64}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 800, fill: '#94a3b8'}} dy={20}/>
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 800, fill: '#94a3b8'}}/>
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)', padding: '15px'}}/>
+                <Bar dataKey="value" fill="#6366f1" radius={[10, 10, 0, 0]} barSize={48}>
                   {attendanceTrend.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 3 ? '#6366f1' : '#f1f5f9'} />
+                    <Cell key={`cell-${index}`} fill={entry.value > 0 ? '#6366f1' : '#f1f5f9'} />
                   ))}
                 </Bar>
               </BarChart>
