@@ -246,68 +246,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
         </div>
       </div>
 
-      {/* 3. LGA SCORECARDS - REDESIGNED FOR SUPERIOR ORGANIZATION */}
-      <div className="space-y-8">
+      {/* 3. LGA SCORECARDS - COMPACT RE-DESIGN */}
+      <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
           <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">Regional Scorecard</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Ranked by Operational Aggregate</p>
+            <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none">Regional Performance Ranking</h3>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5">Ranked by Operational Aggregate</p>
           </div>
           <div className="flex items-center gap-3">
-             <span className="text-[10px] font-black text-slate-400 uppercase">Top Cluster:</span>
-             <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 px-4 py-1.5 rounded-full uppercase tracking-widest border border-indigo-100">{topLGA.name}</span>
+             <span className="text-[9px] font-black text-slate-400 uppercase">Top Cluster:</span>
+             <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-100">{topLGA.name}</span>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {lgaSummaries.map((lga, idx) => (
             <button 
               key={lga.name}
               onClick={() => setFilterLga(lga.name as LGAName)}
-              className={`group p-8 rounded-[2rem] border-2 transition-all text-left relative overflow-hidden flex flex-col justify-between h-auto md:h-[280px] ${
+              className={`group p-6 rounded-[1.5rem] border-2 transition-all text-left relative overflow-hidden flex flex-col justify-between h-auto md:h-[210px] ${
                 filterLga === lga.name 
-                  ? 'bg-white border-indigo-600 shadow-2xl scale-[1.02] z-10' 
+                  ? 'bg-white border-indigo-600 shadow-xl scale-[1.01] z-10' 
                   : 'bg-white border-white text-slate-600 hover:border-slate-200 shadow-sm'
               }`}
             >
               <div className="relative z-10 flex flex-col h-full">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       {idx + 1}
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lga.name}</p>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${lga.totalActive > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active State</span>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lga.name}</p>
+                      <div className="flex items-center gap-1">
+                        <span className={`w-1 h-1 rounded-full ${lga.totalActive > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Active State</span>
                       </div>
                     </div>
                   </div>
                   {idx === 0 && (
-                    <span className="text-[9px] font-black bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full uppercase tracking-tighter border border-emerald-100">Market Leader</span>
+                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full uppercase tracking-tighter border border-emerald-100">Leader</span>
                   )}
                 </div>
 
-                <div className="mt-4 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <h5 className="text-6xl font-black text-slate-900 tracking-tighter">{lga.totalActive}</h5>
-                    <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Aggregate</span>
+                <div className="flex-1 flex items-center">
+                  <div className="flex items-baseline gap-1.5">
+                    <h5 className="text-4xl font-black text-slate-900 tracking-tighter">{lga.totalActive}</h5>
+                    <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Active</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-slate-50">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Records</p>
-                    <p className="text-xl font-black text-slate-900 leading-none">{lga.totalReports}</p>
+                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-50">
+                  <div className="space-y-0.5">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Logs</p>
+                    <p className="text-sm font-black text-slate-900 leading-none">{lga.totalReports}</p>
                   </div>
-                  <div className="space-y-1 text-right">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Efficiency</p>
-                    <p className="text-xl font-black text-emerald-600 leading-none">{lga.avgEngagement}</p>
+                  <div className="space-y-0.5 text-right">
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Avg Eng.</p>
+                    <p className="text-sm font-black text-emerald-600 leading-none">{lga.avgEngagement}</p>
                   </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-slate-50/50 rounded-full blur-3xl -mr-20 -mb-20 group-hover:bg-indigo-50/50 transition-colors duration-500"></div>
+              <div className="absolute bottom-0 right-0 w-32 h-32 bg-slate-50/50 rounded-full blur-2xl -mr-16 -mb-16 group-hover:bg-indigo-50/30 transition-colors duration-500"></div>
             </button>
           ))}
         </div>
