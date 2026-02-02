@@ -30,15 +30,15 @@ export const SmartInsights: React.FC<SmartInsightsProps> = ({ reports }) => {
             </svg>
           </div>
           <div>
-            <h3 className="text-2xl font-black tracking-tight leading-none">Executive Insights</h3>
-            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Gemini 3 Pro Engine</p>
+            <h3 className="text-2xl font-black tracking-tight leading-none">Operational Intelligence</h3>
+            <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Strategic Performance Engine</p>
           </div>
         </div>
 
         {!insights && !loading && (
           <div className="space-y-6">
             <p className="text-slate-400 text-sm leading-relaxed font-medium">
-              Process the current dataset through our advanced reasoning engine to identify performance anomalies, growth opportunities, and logistical friction points.
+              Process the current dataset through our strategic reasoning engine to identify performance anomalies, growth opportunities, and logistical friction points.
             </p>
             <button 
               onClick={handleGenerate}
@@ -52,7 +52,7 @@ export const SmartInsights: React.FC<SmartInsightsProps> = ({ reports }) => {
         {loading && (
           <div className="flex flex-col items-center py-12">
             <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
-            <p className="text-indigo-300 text-xs font-black uppercase tracking-[0.3em] animate-pulse">Deep Reasoning Active...</p>
+            <p className="text-indigo-300 text-xs font-black uppercase tracking-[0.3em] animate-pulse">Processing Operational Data...</p>
           </div>
         )}
 
@@ -81,7 +81,7 @@ export const SmartInsights: React.FC<SmartInsightsProps> = ({ reports }) => {
                 onClick={() => setInsights(null)}
                 className="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors"
               >
-                Clear Results
+                Clear Analysis
               </button>
               <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">
                 Generated {new Date().toLocaleTimeString()}

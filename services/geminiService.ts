@@ -1,92 +1,90 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { WeeklyReport } from "../types.ts";
 
 /**
- * Generates executive insights using Gemini 3 Flash reasoning model.
- * Optimized for speed and state-wide data synthesis.
+ * Generates formal executive insights using Gemini 3 Pro reasoning model.
+ * Optimized for professional government-style memoranda and systemic analysis.
  */
 export const getSmartInsights = async (reports: WeeklyReport[]): Promise<string> => {
   if (reports.length === 0) return "No data available for analysis.";
 
-  // Use the built-in environment API key directly
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const reportSummary = reports.map(r => 
-    `Team ${r.teamCode} (${r.name}/${r.partnerName}) in ${r.lga}: WK1=${r.metrics.weeklyAttendance.wk1}, WK2=${r.metrics.weeklyAttendance.wk2}, WK3=${r.metrics.weeklyAttendance.wk3}, WK4=${r.metrics.weeklyAttendance.wk4}, Total=${r.metrics.activeUsers}`
+    `Team ${r.teamCode} (${r.name}) in ${r.lga}: WK1=${r.metrics.weeklyAttendance.wk1}, WK2=${r.metrics.weeklyAttendance.wk2}, WK3=${r.metrics.weeklyAttendance.wk3}, WK4=${r.metrics.weeklyAttendance.wk4}, Total Active=${r.metrics.activeUsers}`
   ).join('\n');
+
+  const prompt = `
+    As a Senior Performance Analyst for the Katsina State Government, draft a formal MEMORANDUM based on the following weekly operational data:
+    
+    DATASET:
+    ${reportSummary}
+
+    REQUIREMENTS:
+    1. Use a highly formal, authoritative, and professional human tone.
+    2. Format the output strictly as a MEMORANDUM with these headers:
+       - TO: DL4ALL Project Steering Committee / Katsina State Program Lead
+       - FROM: Performance Analysis Unit
+       - DATE: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+       - SUBJECT: Performance Audit & Operational Risk Assessment
+    
+    3. Include the following sections:
+       - EXECUTIVE SUMMARY: A high-level overview of systemic trends.
+       - PERFORMANCE BENCHMARKS: Highlight the top LGA and the most consistent team.
+       - OPERATIONAL GAPS & CHURN RISKS: Identify specific teams with declining performance or "blackout" periods.
+       - SYSTEMIC DIAGNOSIS: Analyze whether failures are logistical (administrative) or executional (field level).
+       - TARGETED INTERVENTIONS: Provide concrete, mandated actions to recover project momentum.
+
+    4. Avoid any mention of "AI", "Gemini", or "Machine Learning". The report should read as if written by a human expert.
+    5. Be specific about Team Codes and LGA names provided in the dataset.
+  `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `
-        Act as a World-Class Performance Analyst for the DL4ALL initiative in Katsina State.
-        Using the provided ground-level data, generate a high-stakes professional report following this structure:
-
-        1. ATTENDANCE GAPS: Identify 'churn risks' where teams moved from numeric values to 'ABS' or 'NDB' in later weeks. Provide an 'Assessment' for critical losses.
-        2. TOP PERFORMERS: Highlight 'Star Performers' with high consistency or strong recovery patterns.
-        3. SYSTEMIC DIAGNOSIS: Analyze patterns like 'NDB' in specific LGAs (e.g., Kankia/Daura) as logistical delays vs team failure.
-        4. TARGETED INTERVENTIONS: Provide concrete, actionable recommendations (Retraining, Field Visits, Re-Engagement).
-
-        TONE: Executive, sharp, authoritative, and data-driven. Use bolding and bullet points for readability.
-
-        DATASET:
-        ${reportSummary}
-      `,
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
       config: {
-        // High reasoning budget for quality results on Flash-3
-        thinkingConfig: { thinkingBudget: 24576 }
+        thinkingConfig: { thinkingBudget: 2000 }
       }
     });
-
-    return response.text || "Unable to generate insights.";
-  } catch (error: any) {
-    console.error("Gemini Error:", error);
-    return "Intelligence engine temporarily unavailable. Please verify connectivity.";
+    return response.text || "Unable to generate memorandum. Please review the raw data ledger.";
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    return "The Performance Analysis Unit is currently unable to process this request. System offline.";
   }
 };
 
 /**
- * Extracts data from a document image or PDF using Gemini 2.5 Flash model.
- * Optimized for vision-based data extraction.
+ * Extracts data from uploaded documents.
  */
-export const extractDataFromDocument = async (base64Data: string, mimeType: string): Promise<any> => {
+export const extractDataFromDocument = async (base64Data: string, mimeType: string) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const prompt = `
+    Analyze this deployment record. Extract:
+    1. The LGA name (strictly one of: Katsina, Malumfashi, Kankia, Batagarawa, Mashi, Daura).
+    2. The Team Code (numeric portion).
+    3. The total number of active users or merit score.
+    
+    Return ONLY a JSON object: {"lga": "name", "teamCode": "number", "total": number}
+  `;
+
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: 'gemini-3-pro-preview',
       contents: {
         parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: `
-              Extract DL4ALL performance data from this Katsina State record. 
-              
-              FORMAT NOTES:
-              - Rows have two names in the 'NAME' column. The top name is 'teamLeaderName', the bottom is 'partnerName'.
-              - 'WK 1' through 'WK 4' columns contain either a number, 'ABS' (Absent), 'NDB' (No Data), or 'P' (Present/Base).
-              - The 'TOTAL' column is a numeric sum.
-              - 'KT LGA' in headers refers to 'Katsina' LGA.
-              
-              Return a raw JSON object only, with no markdown formatting: 
-              { "lga": string, "teamCode": string, "teamLeaderName": string, "partnerName": string, "wk1": string, "wk2": string, "wk3": string, "wk4": string, "total": number }
-            `,
-          },
+          { inlineData: { data: base64Data, mimeType } },
+          { text: prompt }
         ]
       },
-      config: {}
+      config: { responseMimeType: "application/json" }
     });
-
-    const text = response.text || "{}";
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    return JSON.parse(jsonMatch ? jsonMatch[0] : "{}");
+    
+    return JSON.parse(response.text || "{}");
   } catch (error) {
-    console.error("Extraction Error:", error);
+    console.error("Extraction failed:", error);
     return null;
   }
 };

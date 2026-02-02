@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { WeeklyReport, CloudStatus, KATSINA_LGAS, LGAName, MONTHS, WEEKS, YEARS, ReportingMonth, ReportingWeek } from '../types.ts';
 import { ExecutiveReport } from './ExecutiveReport.tsx';
+import { SmartInsights } from './SmartInsights.tsx';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   Cell
@@ -18,7 +19,7 @@ type SortDirection = 'asc' | 'desc';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({
-    key: 'timestamp',
+    key: 'total',
     direction: 'desc',
   });
 
@@ -29,29 +30,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showExecutiveReport, setShowExecutiveReport] = useState(false);
 
-  const NEW_THRESHOLD = 15 * 60 * 1000;
-
-  const recentCount = useMemo(() => {
-    return reports.filter(r => Date.now() - r.timestamp < NEW_THRESHOLD).length;
-  }, [reports]);
+  const SortIndicator = ({ column }: { column: SortKey }) => {
+    if (sortConfig.key !== column) return <span className="ml-1 opacity-20">↕</span>;
+    return <span className="ml-1 text-indigo-600 font-bold">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
+  };
 
   const lgaSummaries = useMemo(() => {
-    return KATSINA_LGAS.map(lga => {
+    const summaries = KATSINA_LGAS.map(lga => {
       const lgaReports = reports.filter(r => 
         r.lga === lga && 
         r.year === filterYear && 
         r.month === filterMonth &&
         (filterWeek === 'ALL' || r.selectedWeek === filterWeek)
       );
-      const total = lgaReports.reduce((acc, r) => acc + (Number(r.metrics.activeUsers) || 0), 0);
+      const totalActive = lgaReports.reduce((acc, r) => acc + (Number(r.metrics.activeUsers) || 0), 0);
       return { 
         name: lga, 
-        total, 
-        count: lgaReports.length,
-        growth: Math.floor(Math.random() * 12) + 2
+        totalActive, 
+        totalReports: lgaReports.length,
+        avgEngagement: lgaReports.length > 0 ? (totalActive / lgaReports.length).toFixed(1) : 0
       };
     });
+    // Rank by performance volume
+    return summaries.sort((a, b) => b.totalActive - a.totalActive);
   }, [reports, filterYear, filterMonth, filterWeek]);
+
+  const topLGA = lgaSummaries[0];
 
   const processedReports = useMemo(() => {
     let items = reports.filter(r => {
@@ -83,7 +87,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
     return items;
   }, [reports, sortConfig, filterLga, filterYear, filterMonth, filterWeek, searchTerm]);
 
-  const weeklyTrendData = useMemo(() => {
+  const topTeam = useMemo(() => {
+    if (processedReports.length === 0) return null;
+    return [...processedReports].sort((a, b) => (Number(b.metrics.activeUsers) || 0) - (Number(a.metrics.activeUsers) || 0))[0];
+  }, [processedReports]);
+
+  const totalActiveUsers = useMemo(() => {
+    return processedReports.reduce((acc, r) => acc + (Number(r.metrics.activeUsers) || 0), 0);
+  }, [processedReports]);
+
+  const attendanceTrend = useMemo(() => {
     const trend = [
       { name: 'WK 1', value: 0 },
       { name: 'WK 2', value: 0 },
@@ -117,282 +130,278 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ reports }) => {
     return (r * 0.299 + g * 0.587 + b * 0.114) < 150;
   };
 
-  const SortIndicator = ({ column }: { column: SortKey }) => {
-    if (sortConfig.key !== column) return <span className="ml-1 opacity-20">↕</span>;
-    return <span className="ml-1 text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
-  };
+  const selectStyle = "bg-white border border-slate-200 rounded-2xl px-5 py-3 text-xs font-black text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all appearance-none cursor-pointer pr-10 shadow-sm hover:border-slate-300";
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-12 pb-20">
       {showExecutiveReport && <ExecutiveReport onClose={() => setShowExecutiveReport(false)} />}
       
-      <div className="bg-white rounded-[2rem] p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-4">
-        <div className="relative flex-1 w-full">
-          <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-          </span>
-          <input 
-            type="text"
-            placeholder="Search State Registry..."
-            className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-6 py-4 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-400"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="flex items-center gap-2 px-2 shrink-0">
-          {recentCount > 0 && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-xl mr-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{recentCount} LIVE SYNC</span>
+      {/* 1. STATE SNAPSHOT & PERFORMANCE CHAMPIONS */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="xl:col-span-8 flex flex-col md:flex-row items-center gap-6 bg-white p-6 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm">
+          <div className="grid grid-cols-2 md:flex items-center gap-10 w-full md:w-auto md:border-r border-slate-100 pr-0 md:pr-12">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">State Aggregate</p>
+              <h2 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter">{totalActiveUsers}</h2>
+              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mt-1">Active Users</p>
             </div>
-          )}
-          <button 
-            onClick={() => setShowExecutiveReport(true)}
-            className="px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-colors shadow-lg shadow-slate-200"
-          >
-            Executive Briefing
-          </button>
+            <div className="text-right md:text-left">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Audit Population</p>
+              <h2 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter">{processedReports.length}</h2>
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Total Records</p>
+            </div>
+          </div>
+          
+          <div className="flex-1 w-full space-y-4">
+            <div className="relative flex-1 w-full">
+              <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+              </span>
+              <input 
+                type="text"
+                placeholder="Search Team Identity..."
+                className="w-full bg-slate-50 border-none rounded-[1.5rem] pl-14 pr-8 py-5 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="xl:col-span-4 bg-indigo-900 rounded-[2.5rem] p-8 text-white shadow-xl flex items-center justify-between relative overflow-hidden group">
+          <div className="relative z-10">
+            <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">State Operation Champion</p>
+            {topTeam ? (
+              <>
+                <h3 className="text-2xl font-black tracking-tight mb-2">{topTeam.name}</h3>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full uppercase tracking-widest">{topTeam.lga}</span>
+                  <span className="text-lg font-black">{topTeam.metrics.activeUsers} Active</span>
+                </div>
+              </>
+            ) : (
+              <h3 className="text-xl font-black">Scanning Ledger...</h3>
+            )}
+            <button 
+              onClick={() => setShowExecutiveReport(true)}
+              className="mt-6 px-6 py-3 bg-white text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors shadow-lg"
+            >
+              Strategic Briefing
+            </button>
+          </div>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+          <svg className="w-24 h-24 text-white/5 absolute bottom-0 right-0 -mr-6 -mb-6 rotate-12" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-200 shadow-sm flex flex-col lg:flex-row items-center gap-6">
-          <div className="flex items-center gap-2 w-full lg:w-auto px-2">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Year</span>
-             <div className="flex gap-1 bg-slate-50 p-1 rounded-xl">
-                {YEARS.map(y => (
-                  <button
-                    key={y}
-                    onClick={() => setFilterYear(y)}
-                    className={`px-6 py-2 rounded-lg text-[10px] font-black transition-all ${
-                      filterYear === y ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    {y}
-                  </button>
-                ))}
-             </div>
+      {/* 2. GLOBAL FILTERS BAR */}
+      <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 lg:space-y-0 lg:flex lg:items-center lg:gap-8">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Cycle Analysis</span>
+          <div className="relative group">
+            <select className={selectStyle} value={filterYear} onChange={(e) => setFilterYear(Number(e.target.value))}>
+              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"/></svg></div>
           </div>
-          <div className="flex items-center gap-2 w-full lg:flex-1">
-             <span className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Month</span>
-             <div className="flex-1 flex gap-2 overflow-x-auto custom-scrollbar p-1">
-                {MONTHS.map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setFilterMonth(m)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black whitespace-nowrap transition-all ${
-                      filterMonth === m ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
-                    }`}
-                  >
-                    {m.toUpperCase()}
-                  </button>
-                ))}
-             </div>
+          <div className="relative group">
+            <select className={selectStyle} value={filterMonth} onChange={(e) => setFilterMonth(e.target.value as ReportingMonth)}>
+              {MONTHS.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"/></svg></div>
           </div>
-          <div className="flex items-center gap-2 w-full lg:w-auto px-2 border-l border-slate-100">
-             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cycle</span>
-             <div className="flex gap-2">
-                <button
-                  onClick={() => setFilterWeek('ALL')}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${
-                    filterWeek === 'ALL' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-500'
-                  }`}
-                >
-                  FULL MONTH
-                </button>
-                {WEEKS.map(w => (
-                  <button
-                    key={w}
-                    onClick={() => setFilterWeek(w)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all whitespace-nowrap ${
-                      filterWeek === w ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-500'
-                    }`}
-                  >
-                    {w.toUpperCase()}
-                  </button>
-                ))}
-             </div>
+          <div className="relative group">
+            <select className={selectStyle} value={filterWeek} onChange={(e) => setFilterWeek(e.target.value as ReportingWeek | 'ALL')}>
+              <option value="ALL">ALL WEEKS</option>
+              {WEEKS.map(w => <option key={w} value={w}>{w.toUpperCase()}</option>)}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"/></svg></div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
-          <button 
+        
+        <div className="h-10 w-px bg-slate-100 hidden lg:block"></div>
+        
+        <div className="flex-1 overflow-x-auto custom-scrollbar flex gap-2 p-1">
+          <button
             onClick={() => setFilterLga('ALL')}
-            className={`p-6 rounded-[2.5rem] border-2 transition-all text-left relative overflow-hidden group ${
-              filterLga === 'ALL' 
-                ? 'bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-200 scale-105 z-10' 
-                : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'
+            className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+              filterLga === 'ALL' ? 'bg-[#0F172A] text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
             }`}
           >
-            <div className="relative z-10">
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">State Aggregate</p>
-              <h5 className="text-2xl font-black mb-4">Whole State</h5>
-              <div className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-bold opacity-60 uppercase">Total Active</span>
-                  <span className={`text-xs font-black ${filterLga === 'ALL' ? 'text-indigo-400' : 'text-slate-900'}`}>
-                    {reports.filter(r => r.year === filterYear && r.month === filterMonth && (filterWeek === 'ALL' || r.selectedWeek === filterWeek)).reduce((acc, r) => acc + (Number(r.metrics.activeUsers) || 0), 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] font-bold opacity-60 uppercase">Reports</span>
-                  <span className={`text-xs font-black ${filterLga === 'ALL' ? 'text-indigo-400' : 'text-slate-900'}`}>
-                    {reports.filter(r => r.year === filterYear && r.month === filterMonth && (filterWeek === 'ALL' || r.selectedWeek === filterWeek)).length}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="absolute -bottom-4 -right-4 p-4 opacity-5 group-hover:opacity-20 transition-opacity">
-               <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            </div>
+            CONSORTIUM
           </button>
-
-          {lgaSummaries.map((lga) => (
-            <button 
-              key={lga.name}
-              onClick={() => setFilterLga(lga.name as LGAName)}
-              className={`p-6 rounded-[2.5rem] border-2 transition-all text-left relative overflow-hidden group ${
-                filterLga === lga.name 
-                  ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl shadow-indigo-100 scale-105 z-10' 
-                  : 'bg-white border-slate-100 text-slate-600 hover:border-slate-200 hover:-translate-y-1'
+          {KATSINA_LGAS.map((lga) => (
+            <button
+              key={lga}
+              onClick={() => setFilterLga(lga)}
+              className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                filterLga === lga ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
               }`}
             >
-              <div className="relative z-10">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">{lga.name}</p>
-                <h5 className="text-3xl font-black mb-4">{lga.total}</h5>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold opacity-60 uppercase">Reports</span>
-                    <span className={`text-xs font-black ${filterLga === lga.name ? 'text-white' : 'text-slate-900'}`}>{lga.count}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold opacity-60 uppercase">Momentum</span>
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${filterLga === lga.name ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'}`}>+{lga.growth}%</span>
-                  </div>
-                </div>
-              </div>
+              {lga}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative group overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative">Filter Aggregate</p>
-              <h4 className="text-5xl font-black text-slate-900 relative">
-                {processedReports.reduce((acc, r) => acc + (Number(r.metrics.activeUsers) || 0), 0)}
-              </h4>
-              <p className="text-xs font-bold text-indigo-600 mt-4 uppercase tracking-tighter relative">
-                {filterLga === 'ALL' ? 'STATEWIDE' : filterLga.toUpperCase()} • {filterMonth} {filterYear}
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm relative group overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 relative">Audit Population</p>
-              <h4 className="text-5xl font-black text-slate-900 relative">{processedReports.length}</h4>
-              <p className="text-xs font-bold text-emerald-600 mt-4 uppercase tracking-tighter relative">VALIDATED ENTRIES</p>
-            </div>
+      {/* 3. LGA SCORECARDS - REDESIGNED FOR SUPERIOR ORGANIZATION */}
+      <div className="space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none">Regional Scorecard</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Ranked by Operational Aggregate</p>
           </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Focus Region Ledger</h3>
-                <p className="text-xs font-medium text-slate-500">Records filtered by selection above</p>
-              </div>
-              <button onClick={() => requestSort('timestamp')} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all text-slate-500 shadow-sm">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              </button>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-100/50">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200">Team</th>
-                    <th onClick={() => requestSort('name')} className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 cursor-pointer hover:bg-slate-200/50">Identifier <SortIndicator column="name" /></th>
-                    <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-center">WK 1</th>
-                    <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-center">WK 2</th>
-                    <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-center">WK 3</th>
-                    <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 text-center">WK 4</th>
-                    <th onClick={() => requestSort('total')} className="px-6 py-4 text-[10px] font-black text-indigo-400 uppercase tracking-widest border-b border-slate-200 bg-indigo-50/30 text-center cursor-pointer hover:bg-indigo-100/30">Total <SortIndicator column="total" /></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {processedReports.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-24 text-center">
-                         <div className="flex flex-col items-center gap-4 text-slate-300">
-                            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
-                            <p className="text-sm font-black uppercase tracking-widest">No matching records found</p>
-                         </div>
-                      </td>
-                    </tr>
-                  ) : processedReports.map((r) => {
-                    const isNew = Date.now() - r.timestamp < NEW_THRESHOLD;
-                    return (
-                      <tr key={r.id} className={`group hover:bg-slate-50/50 transition-all ${isNew ? 'bg-emerald-50/30' : ''}`}>
-                        <td className="px-6 py-5">
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs shadow-sm" 
-                               style={{ backgroundColor: r.color || '#6366f1', color: isDarkColor(r.color || '#6366f1') ? 'white' : 'black' }}>
-                            {r.teamCode}
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{r.name}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{r.partnerName} • {r.lga}</span>
-                          </div>
-                        </td>
-                        {[r.metrics.weeklyAttendance.wk1, r.metrics.weeklyAttendance.wk2, r.metrics.weeklyAttendance.wk3, r.metrics.weeklyAttendance.wk4].map((wk, idx) => (
-                           <td key={idx} className="px-4 py-5 text-center font-bold text-xs text-slate-600">
-                              {wk === 0 || wk === 'ABS' ? <span className="text-rose-400 font-black">ABS</span> : wk === 'NDB' ? <span className="text-slate-200">NDB</span> : wk}
-                           </td>
-                        ))}
-                        <td className="px-6 py-5 text-center bg-indigo-50/10">
-                          <span className="text-lg font-black text-indigo-600">{r.metrics.activeUsers}</span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <div className="flex items-center gap-3">
+             <span className="text-[10px] font-black text-slate-400 uppercase">Top Cluster:</span>
+             <span className="text-[11px] font-black text-indigo-700 bg-indigo-50 px-4 py-1.5 rounded-full uppercase tracking-widest border border-indigo-100">{topLGA.name}</span>
           </div>
         </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+          {lgaSummaries.map((lga, idx) => (
+            <button 
+              key={lga.name}
+              onClick={() => setFilterLga(lga.name as LGAName)}
+              className={`group p-8 rounded-[2rem] border-2 transition-all text-left relative overflow-hidden flex flex-col justify-between h-auto md:h-[280px] ${
+                filterLga === lga.name 
+                  ? 'bg-white border-indigo-600 shadow-2xl scale-[1.02] z-10' 
+                  : 'bg-white border-white text-slate-600 hover:border-slate-200 shadow-sm'
+              }`}
+            >
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm ${idx < 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{lga.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${lga.totalActive > 0 ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active State</span>
+                      </div>
+                    </div>
+                  </div>
+                  {idx === 0 && (
+                    <span className="text-[9px] font-black bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full uppercase tracking-tighter border border-emerald-100">Market Leader</span>
+                  )}
+                </div>
 
-        <div className="lg:col-span-4">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
-            <h3 className="text-lg font-black text-slate-900 mb-6 tracking-tight">Regional Variance</h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: '#64748b'}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: '#64748b'}} />
-                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
-                  <Bar dataKey="value" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
+                <div className="mt-4 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <h5 className="text-6xl font-black text-slate-900 tracking-tighter">{lga.totalActive}</h5>
+                    <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">Aggregate</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mt-6 pt-6 border-t border-slate-50">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Records</p>
+                    <p className="text-xl font-black text-slate-900 leading-none">{lga.totalReports}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Efficiency</p>
+                    <p className="text-xl font-black text-emerald-600 leading-none">{lga.avgEngagement}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-slate-50/50 rounded-full blur-3xl -mr-20 -mb-20 group-hover:bg-indigo-50/50 transition-colors duration-500"></div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. MAIN LEDGER SECTION */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-50">
+          <div>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Consolidated Ledger</h3>
+            <p className="text-xs font-medium text-slate-500 mt-1 uppercase tracking-widest">
+              {filterLga === 'ALL' ? 'State-Wide Directives' : `${filterLga} Region Audit`}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+             <div className="hidden md:flex items-center gap-2 px-5 py-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+               <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
+               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{processedReports.length} Authenticated Entries</span>
+             </div>
+             <button onClick={() => requestSort('total')} className="p-4 bg-[#0F172A] rounded-2xl hover:bg-indigo-600 transition-all text-white shadow-xl shadow-slate-200">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50/30">
+                <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Team Identity</th>
+                <th onClick={() => requestSort('name')} className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-indigo-600 transition-colors">Supervisor <SortIndicator column="name" /></th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Wk 1</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Wk 2</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Wk 3</th>
+                <th className="px-6 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Wk 4</th>
+                <th onClick={() => requestSort('total')} className="px-10 py-6 text-[10px] font-black text-indigo-600 uppercase tracking-widest text-center cursor-pointer bg-indigo-50/30">Active Total <SortIndicator column="total" /></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {processedReports.map((r) => (
+                <tr key={r.id} className="group hover:bg-slate-50/20 transition-colors">
+                  <td className="px-10 py-8">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xs shadow-sm" 
+                         style={{ backgroundColor: r.color || '#6366f1', color: isDarkColor(r.color || '#6366f1') ? 'white' : 'black' }}>
+                      {r.teamCode}
+                    </div>
+                  </td>
+                  <td className="px-10 py-8">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{r.lga}</span>
+                      <span className="text-base font-black text-slate-900 uppercase tracking-tight leading-none">{r.name}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Partner: {r.partnerName}</span>
+                    </div>
+                  </td>
+                  {[r.metrics.weeklyAttendance.wk1, r.metrics.weeklyAttendance.wk2, r.metrics.weeklyAttendance.wk3, r.metrics.weeklyAttendance.wk4].map((wk, idx) => (
+                    <td key={idx} className="px-6 py-8 text-center text-sm font-bold">
+                      {wk === 0 || wk === 'ABS' ? <span className="text-rose-400 opacity-60">ABS</span> : wk === 'NDB' ? <span className="opacity-20">NDB</span> : <span className="text-slate-900 font-black">{wk}</span>}
+                    </td>
+                  ))}
+                  <td className="px-10 py-8 text-center bg-indigo-50/5">
+                    <span className="text-3xl font-black text-indigo-600 tracking-tighter">{r.metrics.activeUsers}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. STRATEGIC ANALYTICS */}
+      <div className="space-y-12">
+        <SmartInsights reports={processedReports} />
+        
+        <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm">
+          <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Operational Cycle Velocity</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">Aggregated Engagement Trend Analysis</p>
             </div>
-            <div className="mt-8 pt-8 border-t border-slate-50">
-               <div className="flex items-center justify-between mb-4">
-                 <span className="text-[10px] font-black text-slate-400 uppercase">Selected LGA</span>
-                 <span className="text-xs font-black text-slate-900 uppercase">{filterLga}</span>
-               </div>
-               <div className="flex items-center justify-between">
-                 <span className="text-[10px] font-black text-slate-400 uppercase">Focus Month</span>
-                 <span className="text-xs font-black text-slate-900 uppercase">{filterMonth} {filterYear}</span>
-               </div>
-            </div>
+          </div>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={attendanceTrend} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} dy={20}/>
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}}/>
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)', padding: '20px'}}/>
+                <Bar dataKey="value" fill="#6366f1" radius={[14, 14, 0, 0]} barSize={64}>
+                  {attendanceTrend.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 3 ? '#6366f1' : '#f1f5f9'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
